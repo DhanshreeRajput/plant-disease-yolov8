@@ -33,4 +33,25 @@ __pycache__/
 # OS-specific files
 .DS_Store
 Thumbs.db
-PlantVillage-Dataset
+
+# Datasets - Raw and Processed
+PlantVillage-Dataset/
+plant_disease_yolo_dataset/
+
+# YOLO runs and results
+runs/
+results/
+wandb/
+
+# Additional dataset formats
+*.jpg
+*.jpeg
+*.png
+*.JPG
+*.JPEG
+*.PNG
+
+# Training outputs
+best.pt
+last.pt
+*.yaml
