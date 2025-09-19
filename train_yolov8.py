@@ -1,3 +1,4 @@
+# Train YOLOv8 model with plant disease data 
 from ultralytics import YOLO
 import os
 from pathlib import Path
