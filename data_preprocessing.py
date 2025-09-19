@@ -18,17 +18,50 @@ def organize_data_for_yolo(source_dir, output_dir, train_ratio=0.8):
     (datasets_dir / "val" / "images").mkdir(parents=True, exist_ok=True)
     (datasets_dir / "val" / "labels").mkdir(parents=True, exist_ok=True)
     
-    # Get all class directories
-    source_path = Path(source_dir) / "color"
-    if not source_path.exists():
-        print(f"❌ Error: {source_path} does not exist!")
+    # Try different possible subdirectories for images
+    source_base = Path(source_dir)
+    possible_subdirs = ["raw", "color", "segmented", "images"]
+    source_path = None
+    
+    # First check if images are directly in the base directory
+    class_dirs_direct = [d for d in source_base.iterdir() if d.is_dir() and not d.name.startswith('.')]
+    # Check if any of these directories contain image files
+    has_images_direct = False
+    for d in class_dirs_direct[:3]:  # Check first 3 directories
+        if list(d.glob("*.jpg")) or list(d.glob("*.JPG")) or list(d.glob("*.png")) or list(d.glob("*.PNG")):
+            has_images_direct = True
+            break
+    
+    if has_images_direct:
+        source_path = source_base
+        print(f"📁 Found images directly in: {source_path}")
+    else:
+        # Try subdirectories
+        for subdir in possible_subdirs:
+            test_path = source_base / subdir
+            if test_path.exists():
+                source_path = test_path
+                print(f"📁 Found images in subdirectory: {source_path}")
+                break
+    
+    if source_path is None or not source_path.exists():
+        print(f"❌ Error: Could not find image directory!")
         print("Available directories in PlantVillage-Dataset:")
-        for item in Path(source_dir).iterdir():
+        for item in source_base.iterdir():
             if item.is_dir():
                 print(f"  📁 {item.name}")
+        
+        print(f"\n💡 Searched for images in:")
+        for subdir in possible_subdirs:
+            print(f"  📁 {source_base / subdir}")
+        print(f"  📁 {source_base} (root)")
         return
     
-    class_dirs = [d for d in source_path.iterdir() if d.is_dir()]
+    class_dirs = [d for d in source_path.iterdir() if d.is_dir() and not d.name.startswith('.')]
+    
+    if not class_dirs:
+        print(f"❌ No class directories found in {source_path}")
+        return
     
     # Create class mapping
     class_names = [d.name for d in class_dirs]
@@ -48,11 +81,15 @@ def organize_data_for_yolo(source_dir, output_dir, train_ratio=0.8):
         class_name = class_dir.name
         class_id = class_to_id[class_name]
         
-        # Get all images in this class
-        image_files = list(class_dir.glob("*.jpg")) + list(class_dir.glob("*.JPG"))
-        print(f"📁 Processing {class_name}: {len(image_files)} images")
+        # Get all images in this class (support multiple formats)
+        image_files = []
+        for ext in ["*.jpg", "*.JPG", "*.jpeg", "*.JPEG", "*.png", "*.PNG"]:
+            image_files.extend(list(class_dir.glob(ext)))
+        
+        print(f"🍃 Processing {class_name}: {len(image_files)} images")
         
         if len(image_files) == 0:
+            print(f"   ⚠️ No images found in {class_name}")
             continue
         
         # Split into train/val
@@ -104,12 +141,18 @@ names: {class_names}
     with open(datasets_dir / "dataset.yaml", 'w') as f:
         f.write(yaml_content)
     
+    # Also save class names to a separate file
+    with open(datasets_dir / "classes.txt", 'w') as f:
+        for name in class_names:
+            f.write(f"{name}\n")
+    
     print(f"\n🎉 Dataset organized successfully!")
     print(f"📊 Statistics:")
     print(f"   🔹 Total classes: {len(class_names)}")
     print(f"   🔹 Training images: {total_train}")
     print(f"   🔹 Validation images: {total_val}")
     print(f"   🔹 Dataset config: {datasets_dir / 'dataset.yaml'}")
+    print(f"   🔹 Class names: {datasets_dir / 'classes.txt'}")
 
 if __name__ == "__main__":
     print("🌱 PlantVillage Dataset Preprocessor")
