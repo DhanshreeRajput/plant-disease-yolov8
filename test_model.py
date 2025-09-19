@@ -1,3 +1,4 @@
+#Evaluate model and test predictions
 from ultralytics import YOLO
 import cv2
 import os
