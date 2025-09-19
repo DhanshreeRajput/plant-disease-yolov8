@@ -1,7 +1,6 @@
 # Train YOLOv8 model with plant disease data 
 from ultralytics import YOLO
-import os
-from pathlib import Path  # Fixed: was "Paths" instead of "Path"
+from pathlib import Path
 import torch
 
 def check_setup():
@@ -20,10 +19,7 @@ def check_setup():
     
     if not torch.cuda.is_available():
         print("❌ ERROR: No GPU/CUDA detected!")
-        print("💡 Solutions:")
-        print("   1. Install PyTorch with CUDA: pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118")
-        print("   2. Check if your GPU drivers are installed")
-        print("   3. Restart your terminal/IDE after installing CUDA")
+        print("💡 Install CUDA-enabled PyTorch or check your drivers")
         return False, None
     
     # GPU is available - get info and force usage
@@ -59,30 +55,25 @@ def train_plant_disease_model():
     print(f"🎯 TRAINING ON GPU: {torch.cuda.get_device_name(0)}")
     print("⏰ GPU training should be much faster...")
     
-    # Optimize batch size for GPU
-    gpu_memory_gb = torch.cuda.get_device_properties(0).total_memory / 1e9
-    if gpu_memory_gb >= 8:
-        batch_size = 16  # Larger batch for high-memory GPUs
-    elif gpu_memory_gb >= 4:
-        batch_size = 8   # Medium batch for mid-range GPUs  
-    else:
-        batch_size = 4   # Small batch for low-memory GPUs
+    # Optimized safe settings for RTX A4000
+    batch_size = 8
+    img_size = 416
     
-    print(f"📊 Optimized batch size for your GPU: {batch_size}")
+    print(f"📊 Using batch size: {batch_size}, image size: {img_size}")
     
-    # Train the model - FORCE GPU
+    # Train the model with safe defaults
     results = model.train(
         data='plant_disease_yolo_dataset/dataset.yaml',
         epochs=50,
-        imgsz=640,
-        batch=batch_size,     # Optimized batch size
-        device=0,            # FORCE GPU device 0
+        imgsz=img_size,
+        batch=batch_size,
+        device=device,         # FORCE GPU device 0
         project='plant_disease_runs',
         name='yolov8_plant_disease',
         save_period=10,
         patience=15,
         
-        # Data augmentation
+        # Data augmentation (lighter)
         hsv_h=0.015,
         hsv_s=0.7,
         hsv_v=0.4,
@@ -93,12 +84,12 @@ def train_plant_disease_model():
         perspective=0.0,
         flipud=0.5,
         fliplr=0.5,
-        mosaic=1.0,
+        mosaic=0.0,           # ✅ disable mosaic to save memory
         mixup=0.1,
         
         # GPU optimization
-        amp=True,            # Automatic Mixed Precision for faster training
-        cache=True,          # Cache images for faster loading
+        amp=True,             # Automatic Mixed Precision
+        cache='disk',         # ✅ disk cache instead of RAM
     )
     
     print("\n🎉 Training completed!")
