@@ -20,41 +20,71 @@ def organize_data_for_yolo(source_dir, output_dir, train_ratio=0.8):
     
     # Try different possible subdirectories for images
     source_base = Path(source_dir)
-    possible_subdirs = ["raw", "color", "segmented", "images"]
+    possible_paths = [
+        source_base / "raw" / "color",  # Most likely for PlantVillage dataset
+        source_base / "color",
+        source_base / "raw",
+        source_base / "segmented", 
+        source_base / "images",
+        source_base  # Direct in root
+    ]
+    
     source_path = None
     
-    # First check if images are directly in the base directory
-    class_dirs_direct = [d for d in source_base.iterdir() if d.is_dir() and not d.name.startswith('.')]
-    # Check if any of these directories contain image files
-    has_images_direct = False
-    for d in class_dirs_direct[:3]:  # Check first 3 directories
-        if list(d.glob("*.jpg")) or list(d.glob("*.JPG")) or list(d.glob("*.png")) or list(d.glob("*.PNG")):
-            has_images_direct = True
-            break
-    
-    if has_images_direct:
-        source_path = source_base
-        print(f"📁 Found images directly in: {source_path}")
-    else:
-        # Try subdirectories
-        for subdir in possible_subdirs:
-            test_path = source_base / subdir
-            if test_path.exists():
-                source_path = test_path
-                print(f"📁 Found images in subdirectory: {source_path}")
-                break
-    
-    if source_path is None or not source_path.exists():
-        print(f"❌ Error: Could not find image directory!")
-        print("Available directories in PlantVillage-Dataset:")
-        for item in source_base.iterdir():
-            if item.is_dir():
-                print(f"  📁 {item.name}")
+    # Check each possible path for actual disease class directories with images
+    for test_path in possible_paths:
+        if not test_path.exists():
+            continue
+            
+        # Get directories in this path
+        potential_class_dirs = [d for d in test_path.iterdir() if d.is_dir() and not d.name.startswith('.')]
         
-        print(f"\n💡 Searched for images in:")
-        for subdir in possible_subdirs:
-            print(f"  📁 {source_base / subdir}")
-        print(f"  📁 {source_base} (root)")
+        # Check if these directories contain actual images (not just more subdirs)
+        has_images = False
+        for d in potential_class_dirs[:5]:  # Check first 5 directories
+            image_count = (len(list(d.glob("*.jpg"))) + len(list(d.glob("*.JPG"))) + 
+                          len(list(d.glob("*.jpeg"))) + len(list(d.glob("*.JPEG"))) +
+                          len(list(d.glob("*.png"))) + len(list(d.glob("*.PNG"))))
+            if image_count > 0:
+                has_images = True
+                break
+        
+        if has_images:
+            source_path = test_path
+            print(f"📁 Found disease classes with images in: {source_path}")
+            break
+        else:
+            print(f"📁 Checked {test_path} - found {len(potential_class_dirs)} subdirs but no images")
+    
+    if source_path is None:
+        print(f"❌ Error: Could not find disease class directories with images!")
+        print("\nAvailable directory structure:")
+        
+        def print_tree(path, prefix="", max_depth=3, current_depth=0):
+            if current_depth >= max_depth:
+                return
+            items = list(path.iterdir()) if path.exists() else []
+            dirs = [item for item in items if item.is_dir() and not item.name.startswith('.')]
+            
+            for i, item in enumerate(dirs[:10]):  # Show max 10 items per level
+                is_last = i == len(dirs) - 1
+                current_prefix = "└── " if is_last else "├── "
+                print(f"{prefix}{current_prefix}{item.name}/")
+                
+                if current_depth < max_depth - 1:
+                    next_prefix = prefix + ("    " if is_last else "│   ")
+                    print_tree(item, next_prefix, max_depth, current_depth + 1)
+            
+            if len(dirs) > 10:
+                print(f"{prefix}... and {len(dirs) - 10} more directories")
+        
+        print(f"PlantVillage-Dataset/")
+        print_tree(source_base, max_depth=3)
+        
+        print(f"\n💡 Searched for disease classes in these locations:")
+        for path in possible_paths:
+            status = "✅ exists" if path.exists() else "❌ not found"
+            print(f"  📁 {path} - {status}")
         return
     
     class_dirs = [d for d in source_path.iterdir() if d.is_dir() and not d.name.startswith('.')]
