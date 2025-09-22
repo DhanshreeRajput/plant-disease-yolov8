@@ -100,7 +100,7 @@ def main():
         image = Image.open(uploaded_file)
         if image.mode != "RGB":
             image = image.convert("RGB")
-        st.image(image, caption="Uploaded Image", use_container_width=True)
+        st.image(image, caption="Uploaded Image", width='stretch')
         
         if st.button("Analyze"):
             with st.spinner("Analyzing..."):
@@ -119,7 +119,7 @@ def main():
                 st.write(f"**Prediction:** {class_name.replace('_',' ').replace('___',' - ')}")
                 st.write(f"**Confidence:** {confidence:.1f}%")
                 st.write(f"**Processing time:** {processing_time:.2f}s")
-                st.image(annotated_img, caption="Annotated Result", use_container_width=True)
+                st.image(annotated_img, caption="Annotated Result", width='stretch')
 
                 st.header("💡 Recommendations")
                 for i, rec in enumerate(recommendations, 1):
