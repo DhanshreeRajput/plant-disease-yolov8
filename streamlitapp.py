@@ -71,20 +71,32 @@ def get_recommendations(class_name, confidence):
         return "Disease Detected", recommendations
 
 def predict_image(model, image: Image.Image):
-    """Run YOLO inference on PIL image and return results."""
+    """Run YOLO inference on PIL image and return results with debug info."""
     img_array = np.array(image)
     results = model(img_array)
+
+    detected_classes = []
+
     for result in results:
         boxes = result.boxes
         if boxes is not None and len(boxes) > 0:
-            box = boxes[0]
-            class_id = int(box.cls)
-            confidence = float(box.conf) * 100
-            class_name = model.names[class_id]
+            for box in boxes:
+                class_id = int(box.cls)
+                confidence = float(box.conf) * 100
+                class_name = model.names[class_id]
+                detected_classes.append((class_name, confidence))
+
+            # Return top prediction
+            top_box = boxes[0]
+            top_class_id = int(top_box.cls)
+            top_confidence = float(top_box.conf) * 100
+            top_class_name = model.names[top_class_id]
             annotated_img = result.plot()
             annotated_img_rgb = cv2.cvtColor(annotated_img, cv2.COLOR_BGR2RGB)
-            return class_name, confidence, annotated_img_rgb
-    return "No detection", 0.0, img_array
+            return top_class_name, top_confidence, annotated_img_rgb, detected_classes
+
+    # No detection
+    return "No detection", 0.0, img_array, detected_classes
 
 def main():
     st.title("🌱 Plant Disease Detection AI")
@@ -105,9 +117,17 @@ def main():
         if st.button("Analyze"):
             with st.spinner("Analyzing..."):
                 start_time = time.time()
-                class_name, confidence, annotated_img = predict_image(model, image)
+                class_name, confidence, annotated_img, detected_classes = predict_image(model, image)
                 processing_time = time.time() - start_time
                 health_status, recommendations = get_recommendations(class_name, confidence)
+
+                # Show all detected classes in the app
+                st.subheader("🔍 All Detected Classes")
+                if detected_classes:
+                    for cls, conf in detected_classes:
+                        st.write(f"{cls.replace('_',' ').replace('___',' - ')} : {conf:.1f}%")
+                else:
+                    st.write("No objects detected.")
 
                 if "healthy" in class_name.lower():
                     st.success("✅ Plant is Healthy")
@@ -116,7 +136,7 @@ def main():
                 else:
                     st.error("⚠️ Disease Detected")
                 
-                st.write(f"**Prediction:** {class_name.replace('_',' ').replace('___',' - ')}")
+                st.write(f"**Top Prediction:** {class_name.replace('_',' ').replace('___',' - ')}")
                 st.write(f"**Confidence:** {confidence:.1f}%")
                 st.write(f"**Processing time:** {processing_time:.2f}s")
                 st.image(annotated_img, caption="Annotated Result", width='stretch')
