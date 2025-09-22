@@ -120,3 +120,11 @@ async def predict_disease(file: UploadFile = File(...)):
         })
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# --- Make terminal URL clickable ---
+if __name__ == "__main__":
+    import uvicorn
+    url = "http://127.0.0.1:8000"
+    print(f"\n🚀 FastAPI is running! Open in browser: {url}\n")
+    uvicorn.run("fastapp:app", host="127.0.0.1", port=8000, reload=True)
