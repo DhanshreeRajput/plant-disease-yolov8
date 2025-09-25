@@ -37,7 +37,8 @@ Thumbs.db
 # Datasets - Raw and Processed
 PlantVillage-Dataset/
 plant_disease_yolo_dataset/
-
+PlantVillage-Dataset.zip
+plant_disease_yolo_dataset.zip
 # YOLO runs and results
 runs/
 results/
