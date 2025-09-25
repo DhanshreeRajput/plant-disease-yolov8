@@ -112,7 +112,7 @@ def main():
         image = Image.open(uploaded_file)
         if image.mode != "RGB":
             image = image.convert("RGB")
-        st.image(image, caption="Uploaded Image", width='stretch')
+        st.image(image, caption="Uploaded Image", width=300)
         
         if st.button("Analyze"):
             with st.spinner("Analyzing..."):
@@ -129,6 +129,41 @@ def main():
                 else:
                     st.write("No objects detected.")
 
+                # FIXED DEBUG SECTION
+                with st.expander("🔧 Debug Info (Click to expand)"):
+                    st.write("**Image Details:**")
+                    st.write(f"- Size: {image.size}")
+                    st.write(f"- Filename: {uploaded_file.name}")
+                    st.write(f"- File size: {len(uploaded_file.getvalue())} bytes")
+                    
+                    st.write("**Model Output:**")
+                    st.write(f"- Raw class name: '{class_name}'")
+                    st.write(f"- Top confidence: {confidence:.1f}%")
+                    st.write(f"- Total detections: {len(detected_classes)}")
+                    
+                    if detected_classes:
+                        st.write("**All Detections:**")
+                        detection_text = ""
+                        for i, (cls, conf) in enumerate(detected_classes):
+                            detection_text += f"  {i+1}. '{cls}' → {conf:.1f}%\n"
+                        st.text(detection_text)
+                    else:
+                        st.write("- No detections found")
+                    
+                    # Check for filename vs prediction mismatch
+                    filename_lower = uploaded_file.name.lower()
+                    prediction_lower = class_name.lower()
+                    st.write("**Validation Check:**")
+                    if "scab" in filename_lower and "healthy" in prediction_lower:
+                        st.error("⚠️ MISMATCH: Filename has 'scab' but model predicts 'healthy'")
+                    elif "healthy" in filename_lower and "healthy" not in prediction_lower:
+                        st.error("⚠️ MISMATCH: Filename has 'healthy' but model predicts disease")
+                    elif ("scab" in filename_lower and "scab" in prediction_lower) or ("healthy" in filename_lower and "healthy" in prediction_lower):
+                        st.success("✅ Filename matches prediction")
+                    else:
+                        st.info("ℹ️ Filename vs prediction comparison inconclusive")
+
+                # Display health status with appropriate styling
                 if "healthy" in class_name.lower():
                     st.success("✅ Plant is Healthy")
                 elif confidence < 50:
@@ -136,15 +171,24 @@ def main():
                 else:
                     st.error("⚠️ Disease Detected")
                 
+                # Display prediction details
                 st.write(f"**Top Prediction:** {class_name.replace('_',' ').replace('___',' - ')}")
                 st.write(f"**Confidence:** {confidence:.1f}%")
                 st.write(f"**Processing time:** {processing_time:.2f}s")
-                st.image(annotated_img, caption="Annotated Result", width='stretch')
+                
+                # Show annotated image
+                st.image(annotated_img, caption="Annotated Result", width=400)
 
+                # COMPLETELY FIXED RECOMMENDATIONS SECTION
                 st.header("💡 Recommendations")
-                for i, rec in enumerate(recommendations, 1):
-                    st.write(f"{i}. {rec}")
+                if recommendations and len(recommendations) > 0:
+                    recommendation_text = ""
+                    for idx, rec in enumerate(recommendations, 1):
+                        if rec and str(rec).strip():
+                            recommendation_text += f"{idx}. {rec}\n"
+                    st.markdown(recommendation_text)
+                else:
+                    st.write("No specific recommendations available.")
 
 if __name__ == "__main__":
     main()
-                                                                                                                                                  
