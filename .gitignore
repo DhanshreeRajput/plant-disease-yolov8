@@ -39,6 +39,7 @@ PlantVillage-Dataset/
 plant_disease_yolo_dataset/
 PlantVillage-Dataset.zip
 plant_disease_yolo_dataset.zip
+PlantVillage-Dataset
 # YOLO runs and results
 runs/
 results/
